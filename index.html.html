@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diário de dor de cabeça</title>
+<meta name="theme-color" content="#1f6f78">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #eef1f4;
+    --surface: #ffffff;
+    --ink: #1f2a37;
+    --muted: #5b6776;
+    --line: #d5dbe2;
+    --accent: #1f6f78;
+    --accent-ink: #ffffff;
+    --danger: #a4372b;
+    --p1: #f2d98a;
+    --p2: #f0b36a;
+    --p3: #e4864f;
+    --p4: #c2543f;
+    --p5: #7d2a4a;
+    --p1-ink: #3d3210;
+    --p2-ink: #4a2c08;
+    --p3-ink: #ffffff;
+    --p4-ink: #ffffff;
+    --p5-ink: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #151a20;
+      --surface: #1e252d;
+      --ink: #e6ebf0;
+      --muted: #9aa6b4;
+      --line: #313b46;
+      --accent: #5fb8c2;
+      --accent-ink: #0f1a1c;
+      --danger: #e5877b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 1.5rem; margin: 8px 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.1rem; margin: 0 0 14px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
+
+  nav { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+  nav button {
+    flex: 1; background: none; border: 0; padding: 12px 8px; font: inherit;
+    color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  }
+  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+
+  section.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  label, legend { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 6px; padding: 0; }
+  fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+  .field { margin-bottom: 16px; }
+  input[type="datetime-local"], input[type="date"], input[type="text"], select, textarea {
+    width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  }
+  textarea { min-height: 84px; resize: vertical; }
+  input[type="datetime-local"], input[type="date"], input[type="text"], select {
+    display: block; width: 100%; min-width: 0; max-width: 100%; height: 46px;
+    -webkit-appearance: none; appearance: none; text-align: left;
+  }
+  input[type="datetime-local"]::-webkit-date-and-time-value,
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; margin: 0; }
+  select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+    background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px;
+  }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .scale input { position: absolute; opacity: 0; pointer-events: none; }
+  .scale label {
+    margin: 0; text-align: center; padding: 12px 4px; border-radius: 8px; cursor: pointer;
+    border: 2px solid transparent; font-weight: 400; display: flex; flex-direction: column; gap: 2px;
+  }
+  .scale label b { font-size: 1.3rem; line-height: 1; }
+  .scale label span { font-size: .72rem; }
+  .scale .l1 { background: var(--p1); color: var(--p1-ink); }
+  .scale .l2 { background: var(--p2); color: var(--p2-ink); }
+  .scale .l3 { background: var(--p3); color: var(--p3-ink); }
+  .scale .l4 { background: var(--p4); color: var(--p4-ink); }
+  .scale .l5 { background: var(--p5); color: var(--p5-ink); }
+  .scale input:checked + label { border-color: var(--ink); box-shadow: 0 0 0 2px var(--surface) inset; transform: scale(1.04); }
+  .scale input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chips input { position: absolute; opacity: 0; pointer-events: none; }
+  .chips label {
+    margin: 0; font-weight: 400; cursor: pointer; padding: 8px 14px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  .chips input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .chips input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .chips .none { color: var(--muted); font-size: .9rem; margin: 0; }
+  .chips .chip-edit {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 14px; border-radius: 999px;
+    border: 1px dashed var(--line); background: var(--bg);
+  }
+  .chips .chip-edit button {
+    font: inherit; line-height: 1; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    border: 0; background: transparent; color: var(--danger); font-size: 1.1rem;
+  }
+  .chips .chip-edit button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .medtools { margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .medtools .hint { margin: 0; font-size: .85rem; color: var(--muted); }
+  .addmed { display: flex; gap: 8px; }
+  .addmed input { flex: 1; }
+
+  .btn {
+    font: inherit; font-weight: 600; border-radius: 8px; padding: 12px 18px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.secondary { background: transparent; color: var(--accent); }
+  .btn.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn.small { padding: 6px 10px; font-size: .85rem; }
+  .btn.full { width: 100%; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+
+  .toast { min-height: 1.4em; margin-top: 10px; font-size: .92rem; color: var(--accent); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 12px; }
+  .stat strong { display: block; font-size: 1.6rem; line-height: 1.1; }
+  .stat span { font-size: .8rem; color: var(--muted); }
+
+  .bars { display: grid; gap: 8px; }
+  .bar { display: grid; grid-template-columns: 70px 1fr 28px; align-items: center; gap: 10px; font-size: .9rem; }
+  .bar .track { background: var(--bg); border-radius: 6px; height: 22px; overflow: hidden; }
+  .bar .fill { height: 100%; min-width: 0; border-radius: 6px; }
+  .bar .n { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .entry { border-top: 1px solid var(--line); padding: 14px 0; display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: start; }
+  .entry:first-child { border-top: 0; padding-top: 0; }
+  .badge { width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 1.2rem; }
+  .badge.l1 { background: var(--p1); color: var(--p1-ink); }
+  .badge.l2 { background: var(--p2); color: var(--p2-ink); }
+  .badge.l3 { background: var(--p3); color: var(--p3-ink); }
+  .badge.l4 { background: var(--p4); color: var(--p4-ink); }
+  .badge.l5 { background: var(--p5); color: var(--p5-ink); }
+  .entry .when { font-weight: 600; }
+  .entry .med { font-size: .9rem; color: var(--accent); }
+  .entry .note { margin: 4px 0 0; color: var(--muted); font-size: .92rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .empty { color: var(--muted); margin: 0; }
+  [hidden] { display: none !important; }
+  @media (max-width: 420px) {
+    .scale label span { display: none; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Diário de dor de cabeça</h1>
+  <p class="sub">Registre cada episódio e acompanhe a frequência, a intensidade e os remédios usados.</p>
+
+  <nav role="tablist" aria-label="Seções">
+    <button role="tab" id="tab-registrar" aria-selected="true" aria-controls="view-registrar">Registrar</button>
+    <button role="tab" id="tab-relatorio" aria-selected="false" aria-controls="view-relatorio">Relatório</button>
+  </nav>
+
+  <!-- REGISTRAR -->
+  <div id="view-registrar" role="tabpanel" aria-labelledby="tab-registrar">
+    <section class="panel">
+      <h2>Novo registro</h2>
+      <form id="form" autocomplete="off">
+        <div class="field">
+          <label for="inicio">Início da dor</label>
+          <input type="datetime-local" id="inicio" required>
+        </div>
+
+        <fieldset>
+          <legend>Grau da dor</legend>
+          <div class="scale">
+            <input type="radio" name="dor" id="d1" value="1" required><label class="l1" for="d1"><b>1</b><span>Leve</span></label>
+            <input type="radio" name="dor" id="d2" value="2"><label class="l2" for="d2"><b>2</b><span>Incômoda</span></label>
+            <input type="radio" name="dor" id="d3" value="3"><label class="l3" for="d3"><b>3</b><span>Moderada</span></label>
+            <input type="radio" name="dor" id="d4" value="4"><label class="l4" for="d4"><b>4</b><span>Forte</span></label>
+            <input type="radio" name="dor" id="d5" value="5"><label class="l5" for="d5"><b>5</b><span>Intensa</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Remédios tomados (opcional)</legend>
+          <div class="chips" id="chips"></div>
+          <div class="addmed">
+            <input type="text" id="remedioNovo" placeholder="Incluir novo remédio (nome e dose)" aria-label="Novo remédio">
+            <button class="btn secondary" id="addMed" type="button">Incluir</button>
+          </div>
+          <div class="medtools" id="medtools" hidden>
+            <button class="btn secondary small" id="editMeds" type="button">Editar lista</button>
+            <p class="hint" id="editHint" hidden>Toque em ✕ para excluir um remédio da lista.</p>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="comentario">Comentário (opcional)</label>
+          <textarea id="comentario" placeholder="Local da dor, possível gatilho, sintomas, o que ajudou..."></textarea>
+        </div>
+
+        <button class="btn full" type="submit">Salvar registro</button>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+  </div>
+
+  <!-- RELATÓRIO -->
+  <div id="view-relatorio" role="tabpanel" aria-labelledby="tab-relatorio" hidden>
+    <section class="panel">
+      <h2>Período</h2>
+      <div class="row">
+        <div class="field">
+          <label for="periodo">Mostrar</label>
+          <select id="periodo">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="365">Último ano</option>
+            <option value="todos">Todos os registros</option>
+            <option value="custom">Escolher datas</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" id="customRange" hidden>
+        <div class="field"><label for="de">De</label><input type="date" id="de"></div>
+        <div class="field"><label for="ate">Até</label><input type="date" id="ate"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Resumo</h2>
+      <div class="stats">
+        <div class="stat"><strong id="sTotal">0</strong><span>episódios</span></div>
+        <div class="stat"><strong id="sMedia">–</strong><span>dor média</span></div>
+        <div class="stat"><strong id="sRemedio">0</strong><span>com remédio</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Quantidade por grau de dor</h2>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Registros</h2>
+      <div id="lista"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Relatório em PDF</h2>
+      <p class="sub" style="margin-bottom:12px">Gera um PDF do período escolhido, com o calendário dos dias de dor (colorido pelo grau) e, abaixo, a lista de episódios com os comentários.</p>
+      <button class="btn full" id="pdfBtn" type="button">Gerar PDF</button>
+      <div class="toast" id="toast3" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Seus dados</h2>
+      <p class="sub" style="margin-bottom:12px">Os registros ficam salvos só neste navegador. Exporte uma cópia de vez em quando.</p>
+      <div class="row">
+        <button class="btn secondary" id="expCsv" type="button">Exportar CSV</button>
+        <button class="btn secondary" id="expJson" type="button">Exportar backup</button>
+        <button class="btn secondary" id="impJson" type="button">Importar backup</button>
+      </div>
+      <input type="file" id="arquivo" accept="application/json" hidden>
+      <div class="toast" id="toast2" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  const KEY = 'dor-de-cabeca:registros';
+  const LABELS = { 1: 'Leve', 2: 'Incômoda', 3: 'Moderada', 4: 'Forte', 5: 'Intensa' };
+  const COLORS = { 1: 'var(--p1)', 2: 'var(--p2)', 3: 'var(--p3)', 4: 'var(--p4)', 5: 'var(--p5)' };
+  const $ = (id) => document.getElementById(id);
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; }
+  }
+  function save(list) { localStorage.setItem(KEY, JSON.stringify(list)); }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function toLocalInput(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function fmt(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function flash(el, msg) {
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3500);
+  }
+
+  // Abas
+  function showTab(name) {
+    ['registrar', 'relatorio'].forEach((n) => {
+      $('tab-' + n).setAttribute('aria-selected', String(n === name));
+      $('view-' + n).hidden = n !== name;
+    });
+    if (name === 'relatorio') render();
+  }
+  $('tab-registrar').onclick = () => showTab('registrar');
+  $('tab-relatorio').onclick = () => showTab('relatorio');
+
+  // Formulário
+  function resetForm() {
+    $('form').reset();
+    $('inicio').value = toLocalInput(new Date());
+    fillRemedios();
+  }
+  const MEDS_KEY = 'dor-de-cabeca:remedios';
+  function getMeds(r) {
+    if (Array.isArray(r.remedios)) return r.remedios;
+    return r.remedio ? [r.remedio] : [];
+  }
+  function savedMeds() {
+    try { return JSON.parse(localStorage.getItem(MEDS_KEY)) || []; } catch (e) { return []; }
+  }
+  function storeMeds(list) { localStorage.setItem(MEDS_KEY, JSON.stringify(list)); }
+  // Uma vez só: traz para a lista os remédios já usados em registros anteriores
+  function migrateMeds() {
+    if (localStorage.getItem(MEDS_KEY + ':migrado')) return;
+    const merged = [...new Set([...savedMeds(), ...load().flatMap(getMeds)])];
+    storeMeds(merged);
+    localStorage.setItem(MEDS_KEY + ':migrado', '1');
+  }
+  function loadMeds() {
+    return [...new Set(savedMeds())].sort((x, y) => x.localeCompare(y, 'pt-BR'));
+  }
+  function addMed(name) {
+    const found = loadMeds().find((m) => m.toLowerCase() === name.toLowerCase());
+    if (found) return found;
+    const saved = savedMeds();
+    saved.push(name);
+    storeMeds(saved);
+    return name;
+  }
+  function deleteMed(name) {
+    if (!confirm('Excluir "' + name + '" da lista de remédios?\nOs registros antigos continuam com esse nome.')) return;
+    const keep = checkedMeds().filter((m) => m !== name);
+    storeMeds(savedMeds().filter((m) => m !== name));
+    renderChips(keep);
+  }
+  let editingMeds = false;
+  let pending = [];
+  function checkedMeds() {
+    if (editingMeds) return pending.slice();
+    return [...document.querySelectorAll('#chips input:checked')].map((i) => i.value);
+  }
+  function renderChips(checked) {
+    const box = $('chips');
+    const on = new Set(checked || []);
+    pending = [...on];
+    const meds = loadMeds();
+    box.innerHTML = '';
+    $('medtools').hidden = !meds.length;
+    $('editHint').hidden = !editingMeds;
+    $('editMeds').textContent = editingMeds ? 'Concluir' : 'Editar lista';
+    if (!meds.length) {
+      editingMeds = false;
+      const p = document.createElement('p');
+      p.className = 'none';
+      p.textContent = 'Nenhum remédio cadastrado. Inclua o primeiro abaixo.';
+      box.appendChild(p);
+      return;
+    }
+    meds.forEach((m, i) => {
+      if (editingMeds) {
+        const chip = document.createElement('span');
+        chip.className = 'chip-edit';
+        chip.appendChild(document.createTextNode(m));
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.textContent = '✕';
+        x.setAttribute('aria-label', 'Excluir remédio ' + m);
+        x.onclick = () => deleteMed(m);
+        chip.appendChild(x);
+        box.appendChild(chip);
+        return;
+      }
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = 'med' + i;
+      input.value = m;
+      input.checked = on.has(m);
+      const label = document.createElement('label');
+      label.htmlFor = input.id;
+      label.textContent = m;
+      box.append(input, label);
+    });
+  }
+  $('editMeds').onclick = () => {
+    const keep = checkedMeds();
+    editingMeds = !editingMeds;
+    renderChips(keep);
+  };
+  function includeNewMed() {
+    const name = $('remedioNovo').value.trim();
+    if (!name) return null;
+    const real = addMed(name);
+    $('remedioNovo').value = '';
+    const keep = [...checkedMeds(), real];
+    editingMeds = false;
+    renderChips(keep);
+    return real;
+  }
+  $('addMed').onclick = includeNewMed;
+  $('remedioNovo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); includeNewMed(); }
+  });
+  function fillRemedios() { editingMeds = false; renderChips([]); }
+
+  $('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const dor = document.querySelector('input[name="dor"]:checked');
+    if (!dor) return;
+    includeNewMed();
+    const remedios = checkedMeds();
+    const list = load();
+    list.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      inicio: new Date($('inicio').value).toISOString(),
+      dor: Number(dor.value),
+      remedios: remedios,
+      comentario: $('comentario').value.trim()
+    });
+    save(list);
+    resetForm();
+    flash($('toast'), 'Registro salvo.');
+  });
+
+  // Período
+  $('periodo').onchange = () => {
+    $('customRange').hidden = $('periodo').value !== 'custom';
+    render();
+  };
+  $('de').onchange = render;
+  $('ate').onchange = render;
+
+  function filtered() {
+    const all = load().sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
+    const p = $('periodo').value;
+    if (p === 'todos') return all;
+    if (p === 'custom') {
+      const de = $('de').value ? new Date($('de').value + 'T00:00:00') : null;
+      const ate = $('ate').value ? new Date($('ate').value + 'T23:59:59') : null;
+      return all.filter((r) => {
+        const d = new Date(r.inicio);
+        return (!de || d >= de) && (!ate || d <= ate);
+      });
+    }
+    const limite = new Date();
+    limite.setDate(limite.getDate() - Number(p));
+    return all.filter((r) => new Date(r.inicio) >= limite);
+  }
+
+  function render() {
+    const rows = filtered();
+    $('sTotal').textContent = rows.length;
+    $('sMedia').textContent = rows.length
+      ? (rows.reduce((s, r) => s + r.dor, 0) / rows.length).toFixed(1).replace('.', ',')
+      : '–';
+    $('sRemedio').textContent = rows.filter((r) => getMeds(r).length).length;
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    rows.forEach((r) => counts[r.dor]++);
+    const max = Math.max(1, ...Object.values(counts));
+    $('bars').innerHTML = [1, 2, 3, 4, 5].map((n) =>
+      '<div class="bar"><span>' + n + ' · ' + LABELS[n] + '</span>' +
+      '<div class="track"><div class="fill" style="width:' + (counts[n] / max * 100) + '%;background:' + COLORS[n] + '"></div></div>' +
+      '<span class="n">' + counts[n] + '</span></div>'
+    ).join('');
+
+    const box = $('lista');
+    if (!rows.length) {
+      box.innerHTML = '<p class="empty">Nenhum registro neste período.</p>';
+      return;
+    }
+    box.innerHTML = '';
+    rows.forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'entry';
+
+      const badge = document.createElement('div');
+      badge.className = 'badge l' + r.dor;
+      badge.textContent = r.dor;
+      badge.title = LABELS[r.dor];
+
+      const body = document.createElement('div');
+      const when = document.createElement('div');
+      when.className = 'when';
+      when.textContent = fmt(r.inicio);
+      body.appendChild(when);
+      if (getMeds(r).length) {
+        const med = document.createElement('div');
+        med.className = 'med';
+        med.textContent = (getMeds(r).length > 1 ? 'Remédios: ' : 'Remédio: ') + getMeds(r).join(', ');
+        body.appendChild(med);
+      }
+      if (r.comentario) {
+        const note = document.createElement('p');
+        note.className = 'note';
+        note.textContent = r.comentario;
+        body.appendChild(note);
+      }
+
+      const del = document.createElement('button');
+      del.className = 'btn danger small';
+      del.type = 'button';
+      del.textContent = 'Excluir';
+      del.setAttribute('aria-label', 'Excluir registro de ' + fmt(r.inicio));
+      del.onclick = () => {
+        if (confirm('Excluir este registro?')) {
+          save(load().filter((x) => x.id !== r.id));
+          render();
+        }
+      };
+
+      el.append(badge, body, del);
+      box.appendChild(el);
+    });
+  }
+
+  // ===== PDF =====
+  const PAL = { 1: '#f2d98a', 2: '#f0b36a', 3: '#e4864f', 4: '#c2543f', 5: '#7d2a4a' };
+  const INK = { 1: '#3d3210', 2: '#4a2c08', 3: '#ffffff', 4: '#ffffff', 5: '#ffffff' };
+  const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  // Larguras da fonte Helvetica (por 1000 unidades) para quebrar linhas
+  const HW = { 32: 278, 33: 278, 34: 355, 35: 556, 36: 556, 37: 889, 38: 667, 39: 191, 40: 333, 41: 333, 42: 389, 43: 584, 44: 278, 45: 333, 46: 278, 47: 278,
+    58: 278, 59: 278, 60: 584, 61: 584, 62: 584, 63: 556, 64: 1015,
+    65: 667, 66: 667, 67: 722, 68: 722, 69: 667, 70: 611, 71: 778, 72: 722, 73: 278, 74: 500, 75: 667, 76: 556, 77: 833, 78: 722, 79: 778, 80: 667, 81: 778, 82: 722, 83: 667, 84: 611, 85: 722, 86: 667, 87: 944, 88: 667, 89: 667, 90: 611,
+    91: 278, 92: 278, 93: 278, 94: 469, 95: 556, 96: 333,
+    97: 556, 98: 556, 99: 500, 100: 556, 101: 556, 102: 278, 103: 556, 104: 556, 105: 222, 106: 222, 107: 500, 108: 222, 109: 833, 110: 556, 111: 556, 112: 556, 113: 556, 114: 333, 115: 500, 116: 278, 117: 556, 118: 500, 119: 722, 120: 500, 121: 500, 122: 500, 123: 334, 124: 260, 125: 334, 126: 584 };
+  for (let c = 48; c <= 57; c++) HW[c] = 556;
+  const WIN = { 0x2013: 0x96, 0x2014: 0x97, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2026: 0x85, 0x20AC: 0x80 };
+  const PW = 595, PH = 842, PM = 40, PBOTTOM = PH - 48;
+  let ops = [];
+
+  function cw(ch) {
+    const c = ch.charCodeAt(0);
+    if (HW[c]) return HW[c];
+    const b = ch.normalize('NFD').charCodeAt(0);
+    return HW[b] || 556;
+  }
+  function tw(t, size) { let w = 0; for (const ch of t) w += cw(ch); return w * size / 1000; }
+  function enc(t) {
+    let out = '';
+    for (const ch of String(t).normalize('NFC')) {
+      let c = ch.codePointAt(0);
+      if (c === 9 || c === 10 || c === 13) c = 32;
+      if (WIN[c]) c = WIN[c];
+      else if (c < 32 || (c > 126 && c < 160) || c > 255) c = 63;
+      out += String.fromCharCode(c);
+    }
+    return out.replace(/[\\()]/g, '\\$&');
+  }
+  const f2 = (n) => n.toFixed(2);
+  function rgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => (v / 255).toFixed(3)).join(' ');
+  }
+  // Coordenadas com origem no topo da página
+  function rect(x, y, w, h, fill, stroke, lw) {
+    let s = '';
+    if (fill) s += rgb(fill) + ' rg\n';
+    if (stroke) s += rgb(stroke) + ' RG\n' + (lw || 0.5) + ' w\n';
+    s += f2(x) + ' ' + f2(PH - y - h) + ' ' + f2(w) + ' ' + f2(h) + ' re ' + (fill && stroke ? 'B' : fill ? 'f' : 'S') + '\n';
+    ops.push(s);
+  }
+  function text(t, x, y, size, bold, color) {
+    ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + rgb(color || '#1f2a37') + ' rg ' + f2(x) + ' ' + f2(PH - y) + ' Td (' + enc(t) + ') Tj ET\n');
+  }
+  function ctext(t, cx, y, size, bold, color) { text(t, cx - tw(t, size) / 2, y, size, bold, color); }
+
+  function wrap(t, size, maxW) {
+    const lines = [];
+    String(t).split(/\r?\n/).forEach((par) => {
+      if (!par.trim()) { lines.push(''); return; }
+      let line = '';
+      par.split(/\s+/).filter(Boolean).forEach((word) => {
+        while (tw(word, size) > maxW) {
+          let cut = 1;
+          while (cut < word.length && tw(word.slice(0, cut + 1), size) <= maxW) cut++;
+          if (line) { lines.push(line); line = ''; }
+          lines.push(word.slice(0, cut));
+          word = word.slice(cut);
+        }
+        if (!word) return;
+        const test = line ? line + ' ' + word : word;
+        if (tw(test, size) <= maxW) line = test; else { lines.push(line); line = word; }
+      });
+      if (line) lines.push(line);
+    });
+    return lines;
+  }
+
+  function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function monthRows(year, month) {
+    return Math.ceil((new Date(year, month, 1).getDay() + new Date(year, month + 1, 0).getDate()) / 7);
+  }
+  const CELL_W = 34, CELL_H = 28;
+  function monthHeight(year, month) { return 28 + monthRows(year, month) * CELL_H + 16; }
+
+  function drawMonth(x, y, year, month, byDay, rStart, rEnd) {
+    text(MESES[month] + ' de ' + year, x, y + 11, 11, true, '#1f6f78');
+    'DSTQQSS'.split('').forEach((l, i) => ctext(l, x + i * CELL_W + CELL_W / 2, y + 24, 7.5, true, '#5b6776'));
+    const startCol = new Date(year, month, 1).getDay();
+    const days = new Date(year, month + 1, 0).getDate();
+    const gy = y + 28;
+    for (let d = 1; d <= days; d++) {
+      const idx = startCol + d - 1;
+      const cx = x + (idx % 7) * CELL_W, cy = gy + Math.floor(idx / 7) * CELL_H;
+      const date = new Date(year, month, d);
+      const inRange = date >= rStart && date <= rEnd;
+      const list = byDay[dayKey(date)];
+      if (list) {
+        const max = Math.max(...list.map((r) => r.dor));
+        rect(cx, cy, CELL_W, CELL_H, PAL[max], '#ffffff', 1);
+        text(String(d), cx + 3, cy + 9, 7, false, INK[max]);
+        ctext(String(max), cx + CELL_W / 2, cy + CELL_H / 2 + 7, 14, true, INK[max]);
+        if (list.length > 1) {
+          const t = '×' + list.length;
+          text(t, cx + CELL_W - tw(t, 7) - 3, cy + CELL_H - 4, 7, true, INK[max]);
+        }
+      } else {
+        rect(cx, cy, CELL_W, CELL_H, inRange ? '#ffffff' : '#f3f5f7', '#d5dbe2', 0.5);
+        text(String(d), cx + 3, cy + 9, 7, false, inRange ? '#5b6776' : '#b4bcc6');
+      }
+    }
+  }
+
+  function buildPdfBytes(pages) {
+    const objs = [];
+    objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objs[2] = '<< /Type /Pages /Kids [' + pages.map((_, i) => (5 + 2 * i) + ' 0 R').join(' ') + '] /Count ' + pages.length + ' >>';
+    objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+    pages.forEach((content, i) => {
+      const pid = 5 + 2 * i, cid = 6 + 2 * i;
+      objs[pid] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + cid + ' 0 R >>';
+      objs[cid] = '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream';
+    });
+    let pdf = '%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n';
+    const offs = [];
+    for (let i = 1; i < objs.length; i++) { offs[i] = pdf.length; pdf += i + ' 0 obj\n' + objs[i] + '\nendobj\n'; }
+    const xref = pdf.length;
+    pdf += 'xref\n0 ' + objs.length + '\n0000000000 65535 f \n';
+    for (let i = 1; i < objs.length; i++) pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    pdf += 'trailer\n<< /Size ' + objs.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+    const bytes = new Uint8Array(pdf.length);
+    for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 255;
+    return bytes;
+  }
+
+  // rows: registros do período (mais recentes primeiro); range: { start, end, label }
+  function buildReportPdf(rows, range) {
+    const pages = [];
+    const newPage = () => { ops = []; pages.push(ops); return PM; };
+    let y = newPage();
+
+    const total = rows.length;
+    const media = (rows.reduce((s, r) => s + r.dor, 0) / total).toFixed(1).replace('.', ',');
+    const comRem = rows.filter((r) => getMeds(r).length).length;
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    rows.forEach((r) => counts[r.dor]++);
+
+    text('Diário de dor de cabeça', PM, y + 18, 20, true, '#1f6f78'); y += 30;
+    text('Período: ' + range.label, PM, y + 10, 10, false); y += 14;
+    const now = new Date();
+    text('Gerado em ' + now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), PM, y + 9, 8.5, false, '#5b6776'); y += 20;
+    text(total + (total === 1 ? ' episódio' : ' episódios') + '  ·  dor média ' + media + '  ·  ' + comRem + ' com remédio', PM, y + 10, 10, true); y += 20;
+
+    let lx = PM;
+    [1, 2, 3, 4, 5].forEach((n) => {
+      rect(lx, y, 16, 16, PAL[n]);
+      ctext(String(n), lx + 8, y + 12, 9, true, INK[n]);
+      const t = LABELS[n] + ' (' + counts[n] + ')';
+      text(t, lx + 21, y + 12, 9, false);
+      lx += 21 + tw(t, 9) + 16;
+    });
+    y += 32;
+
+    // Calendários, dois meses por linha
+    const byDay = {};
+    rows.forEach((r) => { const k = dayKey(new Date(r.inicio)); (byDay[k] = byDay[k] || []).push(r); });
+    const months = [];
+    for (let d = new Date(range.start.getFullYear(), range.start.getMonth(), 1); d <= range.end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      months.push([d.getFullYear(), d.getMonth()]);
+    }
+    for (let i = 0; i < months.length; i += 2) {
+      const pair = months.slice(i, i + 2);
+      const h = Math.max(...pair.map(([yy, mm]) => monthHeight(yy, mm)));
+      if (y + h > PBOTTOM) y = newPage();
+      pair.forEach(([yy, mm], j) => drawMonth(PM + j * 277, y, yy, mm, byDay, range.start, range.end));
+      y += h;
+    }
+
+    // Lista de episódios e comentários
+    y += 4;
+    if (y + 70 > PBOTTOM) y = newPage();
+    text('Episódios e comentários', PM, y + 13, 13, true, '#1f6f78'); y += 20;
+    rect(PM, y, PW - 2 * PM, 0.6, '#d5dbe2'); y += 12;
+    const textW = PW - 2 * PM - 24;
+    rows.forEach((r) => {
+      const meds = getMeds(r);
+      const lines = [
+        ...(meds.length ? wrap((meds.length > 1 ? 'Remédios: ' : 'Remédio: ') + meds.join(', '), 9, textW) : []).map((l) => [l, '#1f6f78']),
+        ...(r.comentario ? wrap(r.comentario, 9, textW) : []).map((l) => [l, '#3b4654'])
+      ];
+      if (y + 18 + (lines.length ? 11 : 0) > PBOTTOM) y = newPage();
+      rect(PM, y, 16, 16, PAL[r.dor]);
+      ctext(String(r.dor), PM + 8, y + 12, 9.5, true, INK[r.dor]);
+      text(fmt(r.inicio) + '  ·  ' + LABELS[r.dor], PM + 24, y + 11.5, 9.5, true);
+      y += 20;
+      lines.forEach(([l, c]) => {
+        if (y + 11 > PBOTTOM) y = newPage();
+        if (l) text(l, PM + 24, y + 8, 9, false, c);
+        y += 11.5;
+      });
+      y += 9;
+    });
+
+    pages.forEach((pg, i) => {
+      ops = pg;
+      text('Diário de dor de cabeça  ·  Página ' + (i + 1) + ' de ' + pages.length, PM, PH - 24, 8, false, '#8a95a3');
+    });
+    return buildPdfBytes(pages.map((pg) => pg.join('')));
+  }
+  // ===== /PDF =====
+
+  function reportRange(rows) {
+    const sod = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const eod = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+    const dates = rows.map((r) => new Date(r.inicio));
+    const minRec = new Date(Math.min(...dates)), maxRec = new Date(Math.max(...dates));
+    const today = new Date();
+    const p = $('periodo').value;
+    let start, end, label;
+    if (p === 'todos') {
+      start = sod(minRec); end = eod(today);
+      label = 'Todos os registros';
+    } else if (p === 'custom') {
+      start = $('de').value ? new Date($('de').value + 'T00:00:00') : sod(minRec);
+      end = $('ate').value ? new Date($('ate').value + 'T23:59:59') : eod(today);
+      label = 'Datas escolhidas';
+    } else {
+      start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - Number(p));
+      end = eod(today);
+      label = $('periodo').selectedOptions[0].textContent;
+    }
+    if (eod(maxRec) > end) end = eod(maxRec);
+    if (sod(minRec) < start) start = sod(minRec);
+    label += ' (' + start.toLocaleDateString('pt-BR') + ' a ' + end.toLocaleDateString('pt-BR') + ')';
+    return { start: start, end: end, label: label };
+  }
+
+  $('pdfBtn').onclick = () => {
+    const rows = filtered();
+    if (!rows.length) { flash($('toast3'), 'Não há registros neste período para gerar o PDF.'); return; }
+    try {
+      const bytes = buildReportPdf(rows, reportRange(rows));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      const hoje = new Date();
+      a.href = url;
+      a.download = 'dor-de-cabeca_' + dayKey(hoje) + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      flash($('toast3'), 'PDF gerado.');
+    } catch (err) {
+      flash($('toast3'), 'Não foi possível gerar o PDF.');
+    }
+  };
+
+  // Exportar / importar
+  function download(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $('expCsv').onclick = () => {
+    const rows = filtered();
+    const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const head = ['Início', 'Dor (1-5)', 'Remédios', 'Comentário'];
+    const lines = rows.map((r) => [
+      fmt(r.inicio), r.dor, getMeds(r).join('; '), r.comentario
+    ].map(esc).join(','));
+    download('dor-de-cabeca.csv', '\uFEFF' + [head.map(esc).join(','), ...lines].join('\n'), 'text/csv;charset=utf-8');
+  };
+  $('expJson').onclick = () => {
+    download('dor-de-cabeca-backup.json', JSON.stringify(load(), null, 2), 'application/json');
+  };
+  $('impJson').onclick = () => $('arquivo').click();
+  $('arquivo').onchange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const incoming = JSON.parse(reader.result);
+        if (!Array.isArray(incoming)) throw new Error();
+        const current = load();
+        const ids = new Set(current.map((r) => r.id));
+        let added = 0;
+        incoming.forEach((r) => {
+          if (r && r.id && r.inicio && r.dor >= 1 && r.dor <= 5 && !ids.has(r.id)) { current.push(r); added++; }
+        });
+        save(current);
+        current.flatMap(getMeds).forEach(addMed);
+        render();
+        flash($('toast2'), added + ' registro(s) importado(s).');
+      } catch (err) {
+        flash($('toast2'), 'Arquivo inválido. Use um backup exportado por este app.');
+      }
+      $('arquivo').value = '';
+    };
+    reader.readAsText(f);
+  };
+
+  migrateMeds();
+  resetForm();
+})();
+</script>
+</body>
+</html>

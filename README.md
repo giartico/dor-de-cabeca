@@ -20,6 +20,16 @@ Aplicativo web simples para registrar episódios de dor de cabeça e os remédio
 - **Gráfico:** quantidade de episódios por grau de dor.
 - **Lista de registros:** data e hora, grau, remédios e comentário, com opção de excluir cada registro.
 
+### Relatório em PDF
+
+O botão **Gerar PDF**, na aba Relatório, baixa um PDF do período escolhido no filtro:
+
+- **Cabeçalho:** período, data de geração, quantidade de episódios, dor média e quantos tiveram remédio, com a legenda de cores e a contagem por grau.
+- **Calendário:** um calendário para cada mês do período. Os dias com dor de cabeça ficam coloridos pelo grau, e o número grande no dia é o grau. Se houve mais de um episódio no dia, aparece a cor e o número do maior grau, com a quantidade (por exemplo, ×2).
+- **Lista:** abaixo dos calendários, todos os episódios do período, do mais recente para o mais antigo, com data e hora, grau, remédios e comentário.
+
+O PDF é gerado no próprio navegador, sem enviar dados para nenhum servidor e sem bibliotecas externas.
+
 ### Dados
 
 - **Exportar CSV:** os registros do período filtrado, para abrir em planilhas.
@@ -93,7 +103,7 @@ Mantenha todos os arquivos na mesma pasta do HTML, para os ícones serem encontr
 
 ## Tecnologia
 
-HTML, CSS e JavaScript puro, em um único arquivo. Usa `localStorage` para guardar os dados e respeita o modo claro/escuro do aparelho.
+HTML, CSS e JavaScript puro, em um único arquivo. Usa `localStorage` para guardar os dados, gera o PDF por código próprio (sem bibliotecas) e respeita o modo claro/escuro do aparelho.
 
 ## Aviso
 
