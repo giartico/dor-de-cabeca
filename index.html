@@ -265,6 +265,13 @@
     </section>
 
     <section class="panel">
+      <h2>Relatório em PDF</h2>
+      <p class="sub" style="margin-bottom:12px">Gera um PDF do período escolhido, com o calendário dos dias de dor (colorido pelo grau) e, abaixo, a lista de episódios com os comentários.</p>
+      <button class="btn full" id="pdfBtn" type="button">Gerar PDF</button>
+      <div class="toast" id="toast3" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
       <h2>Seus dados</h2>
       <p class="sub" style="margin-bottom:12px">Os registros ficam salvos só neste navegador. Exporte uma cópia de vez em quando.</p>
       <div class="row">
@@ -532,6 +539,259 @@
       box.appendChild(el);
     });
   }
+
+  // ===== PDF =====
+  const PAL = { 1: '#f2d98a', 2: '#f0b36a', 3: '#e4864f', 4: '#c2543f', 5: '#7d2a4a' };
+  const INK = { 1: '#3d3210', 2: '#4a2c08', 3: '#ffffff', 4: '#ffffff', 5: '#ffffff' };
+  const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  // Larguras da fonte Helvetica (por 1000 unidades) para quebrar linhas
+  const HW = { 32: 278, 33: 278, 34: 355, 35: 556, 36: 556, 37: 889, 38: 667, 39: 191, 40: 333, 41: 333, 42: 389, 43: 584, 44: 278, 45: 333, 46: 278, 47: 278,
+    58: 278, 59: 278, 60: 584, 61: 584, 62: 584, 63: 556, 64: 1015,
+    65: 667, 66: 667, 67: 722, 68: 722, 69: 667, 70: 611, 71: 778, 72: 722, 73: 278, 74: 500, 75: 667, 76: 556, 77: 833, 78: 722, 79: 778, 80: 667, 81: 778, 82: 722, 83: 667, 84: 611, 85: 722, 86: 667, 87: 944, 88: 667, 89: 667, 90: 611,
+    91: 278, 92: 278, 93: 278, 94: 469, 95: 556, 96: 333,
+    97: 556, 98: 556, 99: 500, 100: 556, 101: 556, 102: 278, 103: 556, 104: 556, 105: 222, 106: 222, 107: 500, 108: 222, 109: 833, 110: 556, 111: 556, 112: 556, 113: 556, 114: 333, 115: 500, 116: 278, 117: 556, 118: 500, 119: 722, 120: 500, 121: 500, 122: 500, 123: 334, 124: 260, 125: 334, 126: 584 };
+  for (let c = 48; c <= 57; c++) HW[c] = 556;
+  const WIN = { 0x2013: 0x96, 0x2014: 0x97, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2026: 0x85, 0x20AC: 0x80 };
+  const PW = 595, PH = 842, PM = 40, PBOTTOM = PH - 48;
+  let ops = [];
+
+  function cw(ch) {
+    const c = ch.charCodeAt(0);
+    if (HW[c]) return HW[c];
+    const b = ch.normalize('NFD').charCodeAt(0);
+    return HW[b] || 556;
+  }
+  function tw(t, size) { let w = 0; for (const ch of t) w += cw(ch); return w * size / 1000; }
+  function enc(t) {
+    let out = '';
+    for (const ch of String(t).normalize('NFC')) {
+      let c = ch.codePointAt(0);
+      if (c === 9 || c === 10 || c === 13) c = 32;
+      if (WIN[c]) c = WIN[c];
+      else if (c < 32 || (c > 126 && c < 160) || c > 255) c = 63;
+      out += String.fromCharCode(c);
+    }
+    return out.replace(/[\\()]/g, '\\$&');
+  }
+  const f2 = (n) => n.toFixed(2);
+  function rgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => (v / 255).toFixed(3)).join(' ');
+  }
+  // Coordenadas com origem no topo da página
+  function rect(x, y, w, h, fill, stroke, lw) {
+    let s = '';
+    if (fill) s += rgb(fill) + ' rg\n';
+    if (stroke) s += rgb(stroke) + ' RG\n' + (lw || 0.5) + ' w\n';
+    s += f2(x) + ' ' + f2(PH - y - h) + ' ' + f2(w) + ' ' + f2(h) + ' re ' + (fill && stroke ? 'B' : fill ? 'f' : 'S') + '\n';
+    ops.push(s);
+  }
+  function text(t, x, y, size, bold, color) {
+    ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + rgb(color || '#1f2a37') + ' rg ' + f2(x) + ' ' + f2(PH - y) + ' Td (' + enc(t) + ') Tj ET\n');
+  }
+  function ctext(t, cx, y, size, bold, color) { text(t, cx - tw(t, size) / 2, y, size, bold, color); }
+
+  function wrap(t, size, maxW) {
+    const lines = [];
+    String(t).split(/\r?\n/).forEach((par) => {
+      if (!par.trim()) { lines.push(''); return; }
+      let line = '';
+      par.split(/\s+/).filter(Boolean).forEach((word) => {
+        while (tw(word, size) > maxW) {
+          let cut = 1;
+          while (cut < word.length && tw(word.slice(0, cut + 1), size) <= maxW) cut++;
+          if (line) { lines.push(line); line = ''; }
+          lines.push(word.slice(0, cut));
+          word = word.slice(cut);
+        }
+        if (!word) return;
+        const test = line ? line + ' ' + word : word;
+        if (tw(test, size) <= maxW) line = test; else { lines.push(line); line = word; }
+      });
+      if (line) lines.push(line);
+    });
+    return lines;
+  }
+
+  function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function monthRows(year, month) {
+    return Math.ceil((new Date(year, month, 1).getDay() + new Date(year, month + 1, 0).getDate()) / 7);
+  }
+  const CELL_W = 34, CELL_H = 28;
+  function monthHeight(year, month) { return 28 + monthRows(year, month) * CELL_H + 16; }
+
+  function drawMonth(x, y, year, month, byDay, rStart, rEnd) {
+    text(MESES[month] + ' de ' + year, x, y + 11, 11, true, '#1f6f78');
+    'DSTQQSS'.split('').forEach((l, i) => ctext(l, x + i * CELL_W + CELL_W / 2, y + 24, 7.5, true, '#5b6776'));
+    const startCol = new Date(year, month, 1).getDay();
+    const days = new Date(year, month + 1, 0).getDate();
+    const gy = y + 28;
+    for (let d = 1; d <= days; d++) {
+      const idx = startCol + d - 1;
+      const cx = x + (idx % 7) * CELL_W, cy = gy + Math.floor(idx / 7) * CELL_H;
+      const date = new Date(year, month, d);
+      const inRange = date >= rStart && date <= rEnd;
+      const list = byDay[dayKey(date)];
+      if (list) {
+        const max = Math.max(...list.map((r) => r.dor));
+        rect(cx, cy, CELL_W, CELL_H, PAL[max], '#ffffff', 1);
+        text(String(d), cx + 3, cy + 9, 7, false, INK[max]);
+        ctext(String(max), cx + CELL_W / 2, cy + CELL_H / 2 + 7, 14, true, INK[max]);
+        if (list.length > 1) {
+          const t = '×' + list.length;
+          text(t, cx + CELL_W - tw(t, 7) - 3, cy + CELL_H - 4, 7, true, INK[max]);
+        }
+      } else {
+        rect(cx, cy, CELL_W, CELL_H, inRange ? '#ffffff' : '#f3f5f7', '#d5dbe2', 0.5);
+        text(String(d), cx + 3, cy + 9, 7, false, inRange ? '#5b6776' : '#b4bcc6');
+      }
+    }
+  }
+
+  function buildPdfBytes(pages) {
+    const objs = [];
+    objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objs[2] = '<< /Type /Pages /Kids [' + pages.map((_, i) => (5 + 2 * i) + ' 0 R').join(' ') + '] /Count ' + pages.length + ' >>';
+    objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+    pages.forEach((content, i) => {
+      const pid = 5 + 2 * i, cid = 6 + 2 * i;
+      objs[pid] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + cid + ' 0 R >>';
+      objs[cid] = '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream';
+    });
+    let pdf = '%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n';
+    const offs = [];
+    for (let i = 1; i < objs.length; i++) { offs[i] = pdf.length; pdf += i + ' 0 obj\n' + objs[i] + '\nendobj\n'; }
+    const xref = pdf.length;
+    pdf += 'xref\n0 ' + objs.length + '\n0000000000 65535 f \n';
+    for (let i = 1; i < objs.length; i++) pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    pdf += 'trailer\n<< /Size ' + objs.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+    const bytes = new Uint8Array(pdf.length);
+    for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 255;
+    return bytes;
+  }
+
+  // rows: registros do período (mais recentes primeiro); range: { start, end, label }
+  function buildReportPdf(rows, range) {
+    const pages = [];
+    const newPage = () => { ops = []; pages.push(ops); return PM; };
+    let y = newPage();
+
+    const total = rows.length;
+    const media = (rows.reduce((s, r) => s + r.dor, 0) / total).toFixed(1).replace('.', ',');
+    const comRem = rows.filter((r) => getMeds(r).length).length;
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    rows.forEach((r) => counts[r.dor]++);
+
+    text('Diário de dor de cabeça', PM, y + 18, 20, true, '#1f6f78'); y += 30;
+    text('Período: ' + range.label, PM, y + 10, 10, false); y += 14;
+    const now = new Date();
+    text('Gerado em ' + now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), PM, y + 9, 8.5, false, '#5b6776'); y += 20;
+    text(total + (total === 1 ? ' episódio' : ' episódios') + '  ·  dor média ' + media + '  ·  ' + comRem + ' com remédio', PM, y + 10, 10, true); y += 20;
+
+    let lx = PM;
+    [1, 2, 3, 4, 5].forEach((n) => {
+      rect(lx, y, 16, 16, PAL[n]);
+      ctext(String(n), lx + 8, y + 12, 9, true, INK[n]);
+      const t = LABELS[n] + ' (' + counts[n] + ')';
+      text(t, lx + 21, y + 12, 9, false);
+      lx += 21 + tw(t, 9) + 16;
+    });
+    y += 32;
+
+    // Calendários, dois meses por linha
+    const byDay = {};
+    rows.forEach((r) => { const k = dayKey(new Date(r.inicio)); (byDay[k] = byDay[k] || []).push(r); });
+    const months = [];
+    for (let d = new Date(range.start.getFullYear(), range.start.getMonth(), 1); d <= range.end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      months.push([d.getFullYear(), d.getMonth()]);
+    }
+    for (let i = 0; i < months.length; i += 2) {
+      const pair = months.slice(i, i + 2);
+      const h = Math.max(...pair.map(([yy, mm]) => monthHeight(yy, mm)));
+      if (y + h > PBOTTOM) y = newPage();
+      pair.forEach(([yy, mm], j) => drawMonth(PM + j * 277, y, yy, mm, byDay, range.start, range.end));
+      y += h;
+    }
+
+    // Lista de episódios e comentários
+    y += 4;
+    if (y + 70 > PBOTTOM) y = newPage();
+    text('Episódios e comentários', PM, y + 13, 13, true, '#1f6f78'); y += 20;
+    rect(PM, y, PW - 2 * PM, 0.6, '#d5dbe2'); y += 12;
+    const textW = PW - 2 * PM - 24;
+    rows.forEach((r) => {
+      const meds = getMeds(r);
+      const lines = [
+        ...(meds.length ? wrap((meds.length > 1 ? 'Remédios: ' : 'Remédio: ') + meds.join(', '), 9, textW) : []).map((l) => [l, '#1f6f78']),
+        ...(r.comentario ? wrap(r.comentario, 9, textW) : []).map((l) => [l, '#3b4654'])
+      ];
+      if (y + 18 + (lines.length ? 11 : 0) > PBOTTOM) y = newPage();
+      rect(PM, y, 16, 16, PAL[r.dor]);
+      ctext(String(r.dor), PM + 8, y + 12, 9.5, true, INK[r.dor]);
+      text(fmt(r.inicio) + '  ·  ' + LABELS[r.dor], PM + 24, y + 11.5, 9.5, true);
+      y += 20;
+      lines.forEach(([l, c]) => {
+        if (y + 11 > PBOTTOM) y = newPage();
+        if (l) text(l, PM + 24, y + 8, 9, false, c);
+        y += 11.5;
+      });
+      y += 9;
+    });
+
+    pages.forEach((pg, i) => {
+      ops = pg;
+      text('Diário de dor de cabeça  ·  Página ' + (i + 1) + ' de ' + pages.length, PM, PH - 24, 8, false, '#8a95a3');
+    });
+    return buildPdfBytes(pages.map((pg) => pg.join('')));
+  }
+  // ===== /PDF =====
+
+  function reportRange(rows) {
+    const sod = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const eod = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+    const dates = rows.map((r) => new Date(r.inicio));
+    const minRec = new Date(Math.min(...dates)), maxRec = new Date(Math.max(...dates));
+    const today = new Date();
+    const p = $('periodo').value;
+    let start, end, label;
+    if (p === 'todos') {
+      start = sod(minRec); end = eod(today);
+      label = 'Todos os registros';
+    } else if (p === 'custom') {
+      start = $('de').value ? new Date($('de').value + 'T00:00:00') : sod(minRec);
+      end = $('ate').value ? new Date($('ate').value + 'T23:59:59') : eod(today);
+      label = 'Datas escolhidas';
+    } else {
+      start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - Number(p));
+      end = eod(today);
+      label = $('periodo').selectedOptions[0].textContent;
+    }
+    if (eod(maxRec) > end) end = eod(maxRec);
+    if (sod(minRec) < start) start = sod(minRec);
+    label += ' (' + start.toLocaleDateString('pt-BR') + ' a ' + end.toLocaleDateString('pt-BR') + ')';
+    return { start: start, end: end, label: label };
+  }
+
+  $('pdfBtn').onclick = () => {
+    const rows = filtered();
+    if (!rows.length) { flash($('toast3'), 'Não há registros neste período para gerar o PDF.'); return; }
+    try {
+      const bytes = buildReportPdf(rows, reportRange(rows));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      const hoje = new Date();
+      a.href = url;
+      a.download = 'dor-de-cabeca_' + dayKey(hoje) + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      flash($('toast3'), 'PDF gerado.');
+    } catch (err) {
+      flash($('toast3'), 'Não foi possível gerar o PDF.');
+    }
+  };
 
   // Exportar / importar
   function download(name, text, type) {
